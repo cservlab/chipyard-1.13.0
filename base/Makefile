@@ -20,9 +20,9 @@ ifeq ($(SUB_PROJECT),vc707)
 	SBT_PROJECT       ?= base_chipyard_fpga
 	MODEL             ?= VC707FPGATestHarness
 	VLOG_MODEL        ?= VC707FPGATestHarness
-	MODEL_PACKAGE     ?= chipyard.fpga.vc707
+	MODEL_PACKAGE     ?= chipyard.base.vc707
 	CONFIG            ?= RocketVC707Config
-	CONFIG_PACKAGE    ?= chipyard.fpga.vc707
+	CONFIG_PACKAGE    ?= chipyard.base.vc707
 	GENERATOR_PACKAGE ?= chipyard
 	TB                ?= none # unused
 	TOP               ?= ChipTop
@@ -34,9 +34,9 @@ ifeq ($(SUB_PROJECT),vcu118)
 	SBT_PROJECT       ?= base_chipyard_fpga
 	MODEL             ?= VCU118FPGATestHarness
 	VLOG_MODEL        ?= VCU118FPGATestHarness
-	MODEL_PACKAGE     ?= chipyard.fpga.vcu118
+	MODEL_PACKAGE     ?= chipyard.base.vcu118
 	CONFIG            ?= RocketVCU118Config
-	CONFIG_PACKAGE    ?= chipyard.fpga.vcu118
+	CONFIG_PACKAGE    ?= chipyard.base.vcu118
 	GENERATOR_PACKAGE ?= chipyard
 	TB                ?= none # unused
 	TOP               ?= ChipTop
@@ -48,9 +48,9 @@ ifeq ($(SUB_PROJECT),nexysvideo)
 	SBT_PROJECT       ?= base_chipyard_fpga
 	MODEL             ?= NexysVideoHarness
 	VLOG_MODEL        ?= NexysVideoHarness
-	MODEL_PACKAGE     ?= chipyard.fpga.nexysvideo
+	MODEL_PACKAGE     ?= chipyard.base.nexysvideo
 	CONFIG            ?= RocketNexysVideoConfig
-	CONFIG_PACKAGE    ?= chipyard.fpga.nexysvideo
+	CONFIG_PACKAGE    ?= chipyard.base.nexysvideo
 	GENERATOR_PACKAGE ?= chipyard
 	TB                ?= none # unused
 	TOP               ?= ChipTop
@@ -63,9 +63,9 @@ ifeq ($(SUB_PROJECT),arty35t)
 	SBT_PROJECT       ?= base_chipyard_fpga
 	MODEL             ?= Arty35THarness
 	VLOG_MODEL        ?= Arty35THarness
-	MODEL_PACKAGE     ?= chipyard.fpga.arty
+	MODEL_PACKAGE     ?= chipyard.base.arty
 	CONFIG            ?= TinyRocketArtyConfig
-	CONFIG_PACKAGE    ?= chipyard.fpga.arty
+	CONFIG_PACKAGE    ?= chipyard.base.arty
 	GENERATOR_PACKAGE ?= chipyard
 	TB                ?= none # unused
 	TOP               ?= ChipTop
@@ -77,9 +77,9 @@ ifeq ($(SUB_PROJECT),arty100t)
 	SBT_PROJECT       ?= base_chipyard_fpga
 	MODEL             ?= Arty100THarness
 	VLOG_MODEL        ?= Arty100THarness
-	MODEL_PACKAGE     ?= chipyard.fpga.arty100t
-	CONFIG            ?= RocketArty100TConfig
-	CONFIG_PACKAGE    ?= chipyard.fpga.arty100t
+	MODEL_PACKAGE     ?= chipyard.base.arty100t
+	CONFIG            ?= BaseRocketArty100TConfig
+	CONFIG_PACKAGE    ?= chipyard.base.arty100t
 	GENERATOR_PACKAGE ?= chipyard
 	TB                ?= none # unused
 	TOP               ?= ChipTop
@@ -161,9 +161,16 @@ debug-bitstream: $(build_dir)/obj/post_synth.dcp
 			$(build_dir)/debug_obj \
 			$(fpga_common_script_dir)
 
+.PHONY: download_bitstream
+download_bitstream:
+		vivado -mode batch -nolog -nojournal -notrace \
+			-source $(sim_dir)/scripts/program.tcl \
+			-tclargs $(build_dir)/obj/$(MODEL).bit;
+
 #########################################################################################
 # general cleanup rules
 #########################################################################################
 .PHONY: clean
 clean:
+	rm -f $(base_dir)/.classpath_cache/*
 	rm -rf $(gen_dir)

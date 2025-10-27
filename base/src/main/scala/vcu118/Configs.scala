@@ -1,4 +1,4 @@
-package chipyard.fpga.vcu118
+package chipyard.base.vcu118
 
 import sys.process._
 

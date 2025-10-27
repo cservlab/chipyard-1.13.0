@@ -1,4 +1,4 @@
-package chipyard.fpga.vc707
+package chipyard.base.vc707
 
 import chisel3._
 import chisel3.experimental.{BaseModule}

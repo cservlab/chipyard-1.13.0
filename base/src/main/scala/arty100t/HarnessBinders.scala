@@ -1,4 +1,4 @@
-package chipyard.fpga.arty100t
+package chipyard.base.arty100t
 
 import chisel3._
 
@@ -18,6 +18,11 @@ import chipyard._
 import chipyard.harness._
 import chipyard.iobinders._
 import testchipip.serdes._
+
+//============================================================================
+/* CUSTOM IMPORT FOR BASE RISC-V SYSTEM ON CHIP ON ARTY100T */
+//============================================================================
+import sifive.blocks.devices.spi._
 
 class WithArty100TUARTTSI extends HarnessBinder({
   case (th: HasHarnessInstantiators, port: UARTTSIPort, chipId: Int) => {
@@ -145,3 +150,86 @@ class WithArty100TJTAG extends HarnessBinder({
     } }
   }
 })
+
+//============================================================================
+/* CUSTOM CONFIGURATIONS FOR BASE RISC-V SYSTEM ON CHIP ON ARTY100T */
+//============================================================================
+
+/*** SPI ***/
+object SPIBinderCounter {
+  var idx = 0
+}
+
+class WithArty100TSPIHarnessBinder extends HarnessBinder({
+  case (th: HasHarnessInstantiators, port: SPIPort, chipId: Int) => {
+    val ath = th.asInstanceOf[LazyRawModuleImp].wrapper.asInstanceOf[Arty100THarness]
+    val idx = SPIBinderCounter.idx
+    if(idx == 0) {
+      println(f"SPI_0: ${port.io} with rAddress 0x${port.io.c.rAddress}%x")
+      ath.io_spi_bb.bundle <> port.io
+      SPIBinderCounter.idx += 1
+    }else if(idx == 1) {
+      println(f"SPI_1: ${port.io} with rAddress 0x${port.io.c.rAddress}%x")
+      val harnessIO = IO(new SPIPortIOSingle(port.io.c)).suggestName("spi1")
+      // Manual connection since dq width differs
+      harnessIO.sck := port.io.sck
+      harnessIO.cs  := port.io.cs
+      // Connect only dq(0)
+      harnessIO.dq(0).o  := port.io.dq(0).o
+      port.io.dq(0).i := harnessIO.dq(0).i
+      harnessIO.dq(0).ie := port.io.dq(0).ie
+      harnessIO.dq(0).oe := port.io.dq(0).oe
+
+      // Tie off unused dq lines on the DUT side
+      port.io.dq(1).i := false.B
+      port.io.dq(2).i := false.B
+      port.io.dq(3).i := false.B
+
+      // Assign pins as needed
+      val packagePinsWithPackageIOs = Seq(
+        ("U12", IOPin(harnessIO.sck)),
+        ("V12", IOPin(harnessIO.cs(0))),
+        ("V10", IOPin(harnessIO.dq(0).o)),
+        ("V11", IOPin(harnessIO.dq(0).i)),
+        ("U14", IOPin(harnessIO.dq(0).ie)),
+        ("V14", IOPin(harnessIO.dq(0).oe))
+      )
+      packagePinsWithPackageIOs.foreach { case (pin, io) =>
+        ath.xdc.addPackagePin(io, pin)
+        ath.xdc.addIOStandard(io, "LVCMOS33")
+        ath.xdc.addIOB(io)
+    }
+    }
+  }
+})
+
+class WithArty100TUARTHarnessBinder(uartPins: Seq[(String, String)] = Seq(("A9", "D10"))) extends HarnessBinder({
+  case (th: HasHarnessInstantiators, port: UARTPort, chipId: Int) => {
+    val ath = th.asInstanceOf[LazyRawModuleImp].wrapper.asInstanceOf[Arty100THarness]
+    val uartId = port.uartNo
+    val harnessIO = IO(chiselTypeOf(port.io)).suggestName(s"uart$uartId")
+    //print harressIO name
+    println(s"UART $uartId: ${harnessIO}")
+
+    harnessIO <> port.io
+
+    // Mapping UART to specified Pins is done here
+    val (rxdPin, txdPin) = uartPins.lift(uartId).getOrElse(
+      throw new Exception(s"No UART Pin mapping for uartId $uartId")
+    )
+    println(s"UART $uartId assignment: RXD-$rxdPin   TXD-$txdPin")
+    
+    // Constraint in XDC
+    val packagePinsWithPackageIOs = Seq(
+      (rxdPin, IOPin(harnessIO.rxd)),
+      (txdPin, IOPin(harnessIO.txd)))
+    packagePinsWithPackageIOs foreach { case (pin, io) => {
+      ath.xdc.addPackagePin(io, pin)
+      ath.xdc.addIOStandard(io, "LVCMOS33")
+      ath.xdc.addIOB(io)
+    } }
+  }
+})
+
+// Maps the UART device to PMOD JD pins 3/7
+class WithArty100TPMODUARTHarnessBinder extends WithArty100TUARTHarnessBinder(Seq(("G2", "F3")))

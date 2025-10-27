@@ -1,5 +1,5 @@
 // See LICENSE for license details.
-package chipyard.fpga.nexysvideo
+package chipyard.base.nexysvideo
 
 import org.chipsalliance.cde.config._
 import freechips.rocketchip.subsystem._

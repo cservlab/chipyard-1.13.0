@@ -1,4 +1,4 @@
-package chipyard.fpga.arty100t
+package chipyard.base.arty100t
 
 import chisel3._
 import chisel3.util._
@@ -17,6 +17,13 @@ import sifive.blocks.devices.uart._
 
 import chipyard._
 import chipyard.harness._
+
+//============================================================================
+/* CUSTOM IMPORT FOR BASE RISC-V SYSTEM ON CHIP ON ARTY100T */
+//============================================================================
+import sifive.blocks.devices.uart.{PeripheryUARTKey, UARTPortIO}
+import sifive.blocks.devices.spi.{PeripherySPIKey, SPIPortIO}
+
 
 class Arty100THarness(override implicit val p: Parameters) extends Arty100TShell {
   def dp = designParameters
@@ -46,6 +53,11 @@ class Arty100THarness(override implicit val p: Parameters) extends Arty100TShell
   val status_leds = all_leds.take(3)
   val other_leds = all_leds.drop(3)
 
+  // CUSTOM CODE 
+  /*** SDIO ***/
+  val io_spi_bb = BundleBridgeSource(() => (new SPIPortIO(dp(PeripherySPIKey).head)))
+  dp(SPIOverlayKey).head.place(SPIDesignInput(dp(PeripherySPIKey).head, io_spi_bb))
+  // CUSTOM CODE END
 
   override lazy val module = new HarnessLikeImpl
 

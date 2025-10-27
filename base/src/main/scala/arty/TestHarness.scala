@@ -1,4 +1,4 @@
-package chipyard.fpga.arty
+package chipyard.base.arty
 
 import chisel3._
 

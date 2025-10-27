@@ -1,5 +1,5 @@
 // See LICENSE for license details.
-package chipyard.fpga.nexysvideo
+package chipyard.base.nexysvideo
 
 import chisel3._
 import chisel3.util._
