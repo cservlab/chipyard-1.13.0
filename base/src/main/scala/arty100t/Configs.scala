@@ -79,19 +79,23 @@ class BringupArty100TConfig extends Config(
 /* CUSTOM CONFIGURATIONS FOR BASE RISC-V SYSTEM ON CHIP ON ARTY100T */
 //============================================================================
 
-class WithArty100TBootROM extends Config((site, here, up) => {
-  case BootROMLocated(x) => up(BootROMLocated(x), site).map { p =>
+class WithArty100TBootROM(isAsicCompatible: Boolean=false) extends Config((site, here, up) => {
+  case BootROMLocated(x) => up(BootROMLocated(x)).map { p =>
     println("Using Bootrom on Arty100T located at " + x.location)
     val freqMHz = (site(SystemBusKey).dtsFrequency.get / (1000 * 1000)).toLong
 
+    var bootRomDir = "base/src/main/resources/arty100t/sdboot"
+    if(isAsicCompatible) {
+      bootRomDir = "base/src/main/resources/arty100t/sdboot-scratchpad"
+    }
     // Make sure that the bootrom is always rebuilt
-    val clean = s"make -C base/src/main/resources/arty100t/sdboot clean"
+    val clean = s"make -C $bootRomDir clean"
     require (clean.! == 0, "Failed to clean")
-    val make = s"make -C base/src/main/resources/arty100t/sdboot PBUS_CLK=${freqMHz} bin"
+    val make = s"make -C $bootRomDir PBUS_CLK=${freqMHz} bin"
     require (make.! == 0, "Failed to build bootrom")
 
     // Set the bootrom parameters
-    p.copy(address=0x10000 /*default*/, size = 0x2000 /*4KB*/ , hang = 0x10000, contentFileName = s"./base/src/main/resources/arty100t/sdboot/build/sdboot.bin")
+    p.copy(address=0x10000 /*default*/, size = 0x2000 /*4KB*/ , hang = 0x10000, contentFileName = s"$bootRomDir/build/sdboot.bin")
   }
 })
 
@@ -102,6 +106,16 @@ class WithSystemModifications extends Config((site, here, up) => {
   case SerialTLKey => Nil // remove serialized tl port
 })
 
+class WithScratchpadAsRAM(sizeKB: Int) extends Config(
+  new WithNoMemPort ++
+  new testchipip.soc.WithMbusScratchpad(base=0x80000000L, size=(sizeKB<<10)) // 16KB
+)
+class WithDefaultDDRAsRAM() extends Config(
+  new WithArty100TDDRTL ++
+  new freechips.rocketchip.subsystem.WithExtMemSize(BigInt(256) << 20) ++ // 256mb on ARTY
+  new chipyard.config.WithTLBackingMemory() // FPGA-shells converts the AXI to TL
+)
+
 class WithDefaultPeripherals extends Config((site, here, up) => {
   case PeripheryUARTKey => List(
     UARTParams(address = BigInt(0x64000000L)), // default UART0
@@ -111,7 +125,7 @@ class WithDefaultPeripherals extends Config((site, here, up) => {
   )
 })
 
-class WithBaseArty100TTweaks(freqMHz: Double = 50) extends Config(
+class WithBaseArty100TTweaks(freqMHz: Double = 50, isAsicCompatible: Boolean = false) extends Config(
   // Clock config
   new chipyard.harness.WithHarnessBinderClockFreqMHz(freqMHz) ++
   new chipyard.config.WithUniformBusFrequencies(freqMHz) ++
@@ -126,18 +140,23 @@ class WithBaseArty100TTweaks(freqMHz: Double = 50) extends Config(
 
   // Custom MMIO configurations
   
+  // Memory Configurations
+  (if (isAsicCompatible) {
+    new WithScratchpadAsRAM(sizeKB=16)
+  }else{
+    new WithDefaultDDRAsRAM
+  }) ++
+
+  new WithArty100TBootROM(isAsicCompatible) ++
+
   // System modifications
-  new WithArty100TBootROM ++
   new WithSystemModifications ++ // Check whether we need to modify the system
   new freechips.rocketchip.subsystem.WithoutTLMonitors ++ // no monitors
-  new chipyard.config.WithBroadcastManager ++ // no L2
-  new WithArty100TDDRTL ++
-  new freechips.rocketchip.subsystem.WithExtMemSize(BigInt(256) << 20) ++ // 256mb on ARTY
-  new chipyard.config.WithTLBackingMemory() // FPGA-shells converts the AXI to TL for us
+  new chipyard.config.WithBroadcastManager // no L2
 )
 
 class BaseRocketArty100TConfig extends Config(
-  new WithBaseArty100TTweaks ++
+  new WithBaseArty100TTweaks(isAsicCompatible=true) ++
   new freechips.rocketchip.rocket.WithNRV32ICores(1) ++
   new chipyard.config.AbstractConfig
 )

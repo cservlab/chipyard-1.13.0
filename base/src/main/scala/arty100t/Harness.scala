@@ -40,13 +40,24 @@ class Arty100THarness(override implicit val p: Parameters) extends Arty100TShell
 
   harnessSysPLLNode := clockOverlay.overlayOutput.node
 
-  val ddrOverlay = dp(DDROverlayKey).head.place(DDRDesignInput(dp(ExtTLMem).get.master.base, dutWrangler.node, harnessSysPLLNode)).asInstanceOf[DDRArtyPlacedOverlay]
-  val ddrClient = TLClientNode(Seq(TLMasterPortParameters.v1(Seq(TLMasterParameters.v1(
-    name = "chip_ddr",
-    sourceId = IdRange(0, 1 << dp(ExtTLMem).get.master.idBits)
-  )))))
-  val ddrBlockDuringReset = LazyModule(new TLBlockDuringReset(4))
-  ddrOverlay.overlayOutput.ddr := ddrBlockDuringReset.node := ddrClient
+  val (ddrOverlay, ddrClient, ddrBlockDuringReset) =
+    if (dp(ExtTLMem) == None) {
+      println(s"ExtTLMem is not defined")
+      (null, null, null)
+    } else {
+      println(s"ExtTLMem is defined")
+      val overlay = dp(DDROverlayKey).head.place(
+        DDRDesignInput(dp(ExtTLMem).get.master.base, dutWrangler.node, harnessSysPLLNode)
+      ).asInstanceOf[DDRArtyPlacedOverlay]
+      val client = TLClientNode(Seq(TLMasterPortParameters.v1(Seq(TLMasterParameters.v1(
+        name = "chip_ddr",
+        sourceId = IdRange(0, 1 << dp(ExtTLMem).get.master.idBits)
+      )))))
+      val blockDuringReset = LazyModule(new TLBlockDuringReset(4))
+      overlay.overlayOutput.ddr := blockDuringReset.node := client
+      (overlay, client, blockDuringReset)
+    }
+
 
   val ledOverlays = dp(LEDOverlayKey).map(_.place(LEDDesignInput()))
   val all_leds = ledOverlays.map(_.overlayOutput.led)
@@ -91,12 +102,19 @@ class Arty100THarness(override implicit val p: Parameters) extends Arty100TShell
     childClock := harnessBinderClock
     childReset := harnessBinderReset
 
-    ddrOverlay.mig.module.clock := harnessBinderClock
-    ddrOverlay.mig.module.reset := harnessBinderReset
-    ddrBlockDuringReset.module.clock := harnessBinderClock
-    ddrBlockDuringReset.module.reset := harnessBinderReset.asBool || !ddrOverlay.mig.module.io.port.init_calib_complete
+    if(ddrOverlay != null) {
+      // Connect MIG and DDR block clocks and resets
+      ddrOverlay.mig.module.clock := harnessBinderClock
+      ddrOverlay.mig.module.reset := harnessBinderReset
+      ddrBlockDuringReset.module.clock := harnessBinderClock
+      ddrBlockDuringReset.module.reset := harnessBinderReset.asBool || !ddrOverlay.mig.module.io.port.init_calib_complete
 
-    other_leds(6) := ddrOverlay.mig.module.io.port.init_calib_complete
+      other_leds(6) := ddrOverlay.mig.module.io.port.init_calib_complete
+    }else{
+      other_leds(6) := true.B // If no DDR, just turn on the LED
+    }
+
+
 
     instantiateChipTops()
   }

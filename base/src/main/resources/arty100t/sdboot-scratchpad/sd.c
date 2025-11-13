@@ -9,7 +9,9 @@
 #include "kprintf.h"
 
 // Total payload in B
-#define PAYLOAD_SIZE_B (4 << 20) // default: 4MiB
+// #define PAYLOAD_SIZE_B (4 << 20) // default: 4MiB
+#define PAYLOAD_SIZE_B (12 << 10) // 12KB (leaving 4KB for stack in 16KB scratchpad)
+
 // A sector is 512 bytes, so (1 << 11) * 512B = 1 MiB
 #define SECTOR_SIZE_B 512
 // Payload size in # of sectors
@@ -240,9 +242,8 @@ int main(void)
 		kputs("ERROR");
 		return 1;
 	}
-
 	kprintf("BOOT\n");
-	kprintf("Executing with FPGA DDR\r\n");
+	kprintf("Executing with Scratchpad RAM\r\n");
 	kprintf("Jumping to payload at address: 0x%x\r\n\n", PAYLOAD_DEST);
 
 	__asm__ __volatile__ ("fence.i" : : : "memory");
