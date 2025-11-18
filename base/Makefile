@@ -87,6 +87,21 @@ ifeq ($(SUB_PROJECT),arty100t)
 	FPGA_BRAND        ?= xilinx
 endif
 
+ifeq ($(SUB_PROJECT),kr260)
+	SBT_PROJECT       ?= base_chipyard_fpga
+	MODEL             ?= KR260Harness
+	VLOG_MODEL        ?= KR260Harness
+	MODEL_PACKAGE     ?= chipyard.base.kr260
+	CONFIG            ?= BaseRocketKR260Config
+	CONFIG_PACKAGE    ?= chipyard.base.kr260
+	GENERATOR_PACKAGE ?= chipyard
+	TB                ?= none # unused
+	TOP               ?= ChipTop
+	BOARD             ?= kr260
+	FPGA_BRAND        ?= xilinx
+	FPGA_PART         ?= xczu5eg-sfvc784-1-i
+endif
+
 export USE_CHISEL6=1
 
 include $(base_dir)/variables.mk
