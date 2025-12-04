@@ -106,6 +106,9 @@ class WithBaseKR260Tweaks(freqMHz: Double = 50, sizeKB: Int = 64) extends Config
   new WithKR260SPIHarnessBinder ++ // SPI ports
   new WithKR260JTAG ++ // JTAG port
 
+  // Custom MMIO configurations
+  // new custom_mmio.crypto.upt.WithUPT(BigInt(0x70001000L), platform="kr260") ++
+
   // Memory Configuration - KR260 uses on-chip scratchpad memory
   // Note: KR260's 4GB DDR4 is connected to PS (Processing System), not PL (Programmable Logic)
   // To access the DDR, you would need to integrate the Zynq UltraScale+ MPSoC IP
@@ -124,7 +127,7 @@ class WithBaseKR260Tweaks(freqMHz: Double = 50, sizeKB: Int = 64) extends Config
 class BaseRocketKR260Config extends Config(
   new freechips.rocketchip.rocket.WithL1ICacheSets(8) ++  // 2KB I-Cache (8 sets × 4 ways × 64B = 2KB)
   new freechips.rocketchip.rocket.WithL1DCacheSets(8) ++  // 2KB D-Cache (8 sets × 4 ways × 64B = 2KB)
-  new WithBaseKR260Tweaks(freqMHz=50, sizeKB=32) ++
+  new WithBaseKR260Tweaks(freqMHz=50, sizeKB=16) ++
   new freechips.rocketchip.rocket.WithNRV32ICores(1) ++
   new chipyard.config.AbstractConfig
 )

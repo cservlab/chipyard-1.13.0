@@ -39,16 +39,23 @@ class WithKR260JTAG extends HarnessBinder({
     
     // KR260 JTAG pin assignments (matching KR260Shell.scala)
     // Note: These pins match the JTAG overlay in KR260Shell
+    // val packagePinsWithPackageIOs = Seq(
+    //   ("R19", IOPin(harnessIO.TCK)),  // JTAG TCK
+    //   ("N21", IOPin(harnessIO.TMS)),  // JTAG TMS
+    //   ("R18", IOPin(harnessIO.TDI)),  // JTAG TDI
+    //   ("T21", IOPin(harnessIO.TDO))   // JTAG TDO
+    //   // Note: srst_n (F14) is handled separately in shell
+    // )
     val packagePinsWithPackageIOs = Seq(
-      ("R19", IOPin(harnessIO.TCK)),  // JTAG TCK
-      ("N21", IOPin(harnessIO.TMS)),  // JTAG TMS
-      ("R18", IOPin(harnessIO.TDI)),  // JTAG TDI
-      ("T21", IOPin(harnessIO.TDO))   // JTAG TDO
+      ("AC12", IOPin(harnessIO.TCK)),  // JTAG TCK
+      ("AD12", IOPin(harnessIO.TMS)),  // JTAG TMS
+      ("AE10", IOPin(harnessIO.TDI)),  // JTAG TDI
+      ("AF10", IOPin(harnessIO.TDO))   // JTAG TDO
       // Note: srst_n (F14) is handled separately in shell
     )
     packagePinsWithPackageIOs foreach { case (pin, io) => {
       kth.xdc.addPackagePin(io, pin)
-      kth.xdc.addIOStandard(io, "LVCMOS18")
+      kth.xdc.addIOStandard(io, "LVCMOS33")
       kth.xdc.addPullup(io)
     } }
   }
@@ -107,7 +114,7 @@ class WithKR260SPIHarnessBinder extends HarnessBinder({
 })
 
 /*** UART ***/
-class WithKR260UARTHarnessBinder(uartPins: Seq[(String, String)] = Seq(("J17", "K17"))) extends HarnessBinder({
+class WithKR260UARTHarnessBinder(uartPins: Seq[(String, String)] = Seq(("F12", "G10"))) extends HarnessBinder({
   case (th: HasHarnessInstantiators, port: UARTPort, chipId: Int) => {
     val kth = th.asInstanceOf[LazyRawModuleImp].wrapper.asInstanceOf[KR260Harness]
     val uartId = port.uartNo
